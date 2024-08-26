@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Http\Services\EventService;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\CreateEventRequest;
 
 class CalenderController extends Controller
 {
@@ -12,6 +15,14 @@ class CalenderController extends Controller
     public function index()
     {
         return view('calenders.list');
+    }
+
+    public function refetchEvents(Request $request)
+    {
+        $eventService = new EventService(Auth::user());
+        $eventData = $eventService->allEvents($request->all());
+
+        return response()->json($eventData);
     }
 
     /**
@@ -25,9 +36,24 @@ class CalenderController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(CreateEventRequest $request)
     {
-        //
+        $data = $request->all();
+
+        $user = Auth::user();
+        $data['user_id'] = $user->id;
+        $eventService = new EventService($user);
+
+        $event = $eventService->create($data);
+        if ($event) {
+            return response()->json([
+                'status' => 'success',
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'failed',
+            ]);
+        }
     }
 
     /**

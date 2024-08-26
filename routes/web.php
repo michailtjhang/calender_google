@@ -13,4 +13,6 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 
 Route::middleware('auth')->group(function () {
     Route::resource('calenders', CalenderController::class);
+
+    Route::get('/refetch-calender', [CalenderController::class, 'refetchEvents'])->name('refetch-calender');
 });
