@@ -64,6 +64,8 @@ class EventService
                 $eventData['end'] = Carbon::parse($event->end)->format('Y-m-d H:i:s');
             }
 
+            $eventData['backgroundColor'] = '#fcba03';
+            $eventData['borderColor'] = '#fcba03';
             $data[] = $eventData;
         }
 
