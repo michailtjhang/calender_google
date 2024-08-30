@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Http\Services\EventService;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\CreateEventRequest;
+use App\Http\Requests\UpdateEventRequest;
+use App\Models\CalenderGoogle;
 
 class CalenderController extends Controller
 {
@@ -75,9 +77,23 @@ class CalenderController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateEventRequest $request, string $id)
     {
-        //
+        $data = $request->all();
+
+        $user = Auth::user();
+        $eventService = new EventService($user);
+
+        $event = $eventService->update($id, $data);
+        if ($event) {
+            return response()->json([
+                'status' => 'success',
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'failed',
+            ]);
+        }
     }
 
     /**
@@ -85,6 +101,16 @@ class CalenderController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        try {
+            $id = CalenderGoogle::find($id);
+            $id->delete();
+            return response()->json([
+                'status' => 'success',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'failed',
+            ]);
+        }
     }
 }

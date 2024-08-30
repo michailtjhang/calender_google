@@ -20,6 +20,14 @@ class EventService
 
         return $event;
     }
+    public function update($id, $data)
+    {
+        $event = CalenderGoogle::find($id);
+        $event->fill($data);
+        $event->save();
+
+        return $event;
+    }
 
     public function allEvents($fillers)
     {

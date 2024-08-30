@@ -15,7 +15,7 @@
 
     <!-- Modal -->
     <dialog id="scheduleModal" class="modal">
-        <div class="modal-box w-11/12 max-w-5xl bg-white text-gray-800">
+        <div class="modal-box w-11/12 max-w-xl bg-white text-gray-800">
             <h3 class="font-bold text-lg text-gray-900">Add Schedule</h3>
             <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 text-gray-600"
                 onclick="scheduleModal.close()">✕</button>
@@ -65,12 +65,18 @@
                 </div>
             </div>
 
-            <div class="modal-action">
-                <button type="button" id="deleteBtn" class="btn btn-error" style="display: none"
-                    onclick="deleteEvent()">Close</button>
-                <button type="button" id="cancelBtn" class="btn" onclick="scheduleModal.close()">Close</button>
-                <button type="button" id="saveBtn" class="btn btn-primary" onclick="saveEvent()">Save changes</button>
+            <div class="modal-action flex justify-between">
+                <div>
+                    <button type="button" id="deleteBtn" class="btn btn-error" style="display: none"
+                        onclick="deleteEvent()">Delete</button>
+                </div>
+                <div>
+                    <button type="button" id="cancelBtn" class="btn" onclick="scheduleModal.close()">Close</button>
+                    <button type="button" id="saveBtn" class="btn btn-primary" onclick="saveEvent()">Save
+                        changes</button>
+                </div>
             </div>
+
         </div>
     </dialog>
 
@@ -123,6 +129,40 @@
                     $('#endDateTime').val(endDate);
                     modalReset();
                     scheduleModal.showModal();
+                },
+                eventClick: function(info) {
+                    modalReset();
+                    const event = info.event;
+
+                    $('#title').val(event.title);
+                    // Mengambil deskripsi dari extendedProps untuk edit event
+                    $('#description').val(event.extendedProps.description || '');
+
+                    // Mengatur nilai start dan end date
+                    $('#startDateTime').val(moment(event.start).format(event.allDay ? 'YYYY-MM-DD' :
+                        'YYYY-MM-DD HH:mm:ss'));
+                    $('#endDateTime').val(event.end ? moment(event.end).format(event.allDay ?
+                        'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm:ss') : moment(event.start).format(event
+                        .allDay ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm:ss'));
+
+                    // Menangani checkbox allDay
+                    $('#allDay').prop('checked', event.allDay);
+
+                    // Menyimpan event ID untuk proses update
+                    $('#eventId').val(event.id);
+
+                    // Menampilkan modal
+                    scheduleModal.showModal();
+
+                    // munculkan tombol delete
+                    $('#deleteBtn').show();
+
+                    // Menyesuaikan format datetimepicker berdasarkan allDay
+                    if (event.allDay) {
+                        initializeStartDateEndDateFormat('Y-m-d', true);
+                    } else {
+                        initializeStartDateEndDateFormat('Y-m-d H:i', false);
+                    }
                 }
             })
             calendar.render()
@@ -201,7 +241,7 @@
             }
 
             if (eventId) {
-                url = url + '/' + eventId;
+                url = '{{ url('/calenders') }}' + '/' + eventId;
                 postData._method = 'PUT';
             }
             // Query Ajax
@@ -218,6 +258,25 @@
                     }
                 }
             })
+        }
+
+        function deleteEvent() {
+            if (window.confirm('Apakah Anda yakin ingin menghapus event ini?')) {
+                let eventId = $('#eventId').val();
+                $.ajax({
+                    url: '{{ url('/calenders') }}' + '/' + eventId,
+                    type: 'DELETE',
+                    success: function(response) {
+                        if (response.status == 'success') {
+                            scheduleModal.close();
+                            calendar.refetchEvents();
+                        } else {
+                            alert(response.message);
+                        }
+                    }
+                })
+                
+            }
         }
     </script>
 @endsection
