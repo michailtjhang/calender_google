@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\CreateEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Models\CalenderGoogle;
+use Carbon\Carbon;
 
 class CalenderController extends Controller
 {
@@ -108,6 +109,28 @@ class CalenderController extends Controller
                 'status' => 'success',
             ]);
         } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'failed',
+            ]);
+        }
+    }
+
+    public function resizeEvent(Request $request)
+    {
+        $data = $request->all();
+
+        if (isset($data['is_all_day']) && $data['is_all_day'] == 1) {
+            $data['end']=Carbon::createFromTimestamp(strtotime($data['end']))->addDays(-1)->toDateString();
+        }
+
+        $user = Auth::user();
+        $eventService = new EventService($user);
+        $event = $eventService->update($data['id'], $data);
+        if ($event) {
+            return response()->json([
+                'status' => 'success',
+            ]);
+        } else {
             return response()->json([
                 'status' => 'failed',
             ]);

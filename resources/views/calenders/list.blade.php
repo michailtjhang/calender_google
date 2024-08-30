@@ -109,6 +109,7 @@
                 },
                 themeSystem: 'standard',
                 events: '{{ route('refetch-calender') }}',
+                // editable: true,
                 dateClick: function(info) {
                     let startDate, endDate; // Deklarasi variabel di luar blok if-else
                     let allDay = $('#allDay').prop('checked');
@@ -163,7 +164,15 @@
                     } else {
                         initializeStartDateEndDateFormat('Y-m-d H:i', false);
                     }
-                }
+                },
+                // eventDrop: function(info) {
+                //     const event = info.event;
+                //     resizeEventUpdate(event);
+                // },
+                // eventResize: function(info) {
+                //     const event = info.event;
+                //     resizeEventUpdate(event);
+                // }
             })
             calendar.render()
             $('#allDay').change(function() {
@@ -278,5 +287,44 @@
                 
             }
         }
+
+        // function resizeEventUpdate(event) {
+        //     let eventId = event.id;
+        //     let url = '{{ url('/calenders') }}' + '/' + eventId + '/resize';
+        //     let start = null, end = null;
+
+        //     if (event.allDay) {
+        //         start = moment(event.start).format('YYYY-MM-DD');
+        //         end = start;
+        //         if (event.end) {
+        //             end = moment(event.end).format('YYYY-MM-DD');
+        //         }
+        //     } else {
+        //         start = moment(event.start).format('YYYY-MM-DD HH:mm:ss');
+        //         end = start
+        //         if (event.end) {
+        //             end = moment(event.end).format('YYYY-MM-DD HH:mm:ss');
+        //         }
+        //     }
+        //     let postData = {
+        //         start: start,
+        //         end: end,
+        //         is_all_day: event.allDay ? 1 : 0,
+        //         _method: 'PUT' 
+        //     };
+        //     $.ajax({
+        //         url: url,
+        //         type: 'POST',
+        //         data: postData,
+        //         success: function(response) {
+        //             if (response.status == 'success') {
+        //                 scheduleModal.close();
+        //                 calendar.refetchEvents();
+        //             } else {
+        //                 alert(response.message);
+        //             }
+        //         }
+        //     })
+        // }
     </script>
 @endsection
