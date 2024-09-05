@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Services;
+namespace App\Http\Service;
 
 use App\Models\CalenderGoogle;
 use Carbon\Carbon;

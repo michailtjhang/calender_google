@@ -6,6 +6,7 @@
     <div class="flex justify-center mx-72">
         <div class="w-full md:w-11/12">
             <div class="shadow-lg bg-base-100 rounded-lg">
+                <button class="btn btn-ghost"><img src="https://img.icons8.com/color/48/000000/google.png" class="h-8 w-8"></button>
                 <div class="p-6">
                     <div id="calendar"></div>
                 </div>
@@ -111,6 +112,8 @@
                 events: '{{ route('refetch-calender') }}',
                 // editable: true,
                 dateClick: function(info) {
+                    modalReset();
+
                     let startDate, endDate; // Deklarasi variabel di luar blok if-else
                     let allDay = $('#allDay').prop('checked');
 
@@ -128,7 +131,7 @@
 
                     $('#startDateTime').val(startDate);
                     $('#endDateTime').val(endDate);
-                    modalReset();
+                    
                     scheduleModal.showModal();
                 },
                 eventClick: function(info) {
@@ -222,6 +225,8 @@
             $('#eventId').val('');
             $('#title').val('');
             $('#description').val('');
+            $('#startDateTime').val('');
+            $('#endDateTime').val('');
             $('#allDay').prop('checked', true);
             $('#deleteBtn').hide();
         }

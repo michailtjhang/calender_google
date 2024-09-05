@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Http\Services\EventService;
+use App\Http\Service\EventService;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\CreateEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Models\CalenderGoogle;
+use App\Services\Google\GoogleService;
 use Carbon\Carbon;
 
 class CalenderController extends Controller
@@ -17,7 +18,14 @@ class CalenderController extends Controller
      */
     public function index()
     {
-        return view('calenders.list');
+        $googleService = new GoogleService(
+            config('services.google.client_id'),
+            config('services.google.client_secret'),
+            config('services.google.callback'),
+        );
+        return view('calenders.list', [
+            'OAuth2Client' => '',
+        ]);
     }
 
     public function refetchEvents(Request $request)
