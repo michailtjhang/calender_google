@@ -6,7 +6,7 @@
     <div class="flex justify-center mx-72">
         <div class="w-full md:w-11/12">
             <div class="shadow-lg bg-base-100 rounded-lg">
-                <button class="btn btn-ghost"><img src="https://img.icons8.com/color/48/000000/google.png" class="h-8 w-8"></button>
+                <a href="{{ $OAuth2Client }}" class="btn btn-ghost"><img src="https://img.icons8.com/color/48/000000/google.png" class="h-8 w-8"></a>
                 <div class="p-6">
                     <div id="calendar"></div>
                 </div>

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\CreateEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Models\CalenderGoogle;
-use App\Services\Google\GoogleService;
+use App\Http\Service\GoogleService;
 use Carbon\Carbon;
 
 class CalenderController extends Controller
@@ -19,12 +19,13 @@ class CalenderController extends Controller
     public function index()
     {
         $googleService = new GoogleService(
-            config('services.google.client_id'),
-            config('services.google.client_secret'),
-            config('services.google.callback'),
+            config('google.app_id'),
+            config('google.app_secret'),
+            config('google.app_callback'),
         );
+
         return view('calenders.list', [
-            'OAuth2Client' => '',
+            'OAuth2Client' => $googleService->getAuthUrl(),
         ]);
     }
 

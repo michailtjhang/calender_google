@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Google;
+namespace App\Http\Service;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Promise;
@@ -15,7 +15,7 @@ class GoogleService
     // Default scope Google OAuth
     protected $scopes = 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/calendar';
 
-    public function __construct(string $client_id, string $client_secret, string $callback)
+    public function __construct($client_id, $client_secret, $callback)
     {
         $this->client_id = $client_id;
         $this->client_secret = $client_secret;
@@ -24,17 +24,12 @@ class GoogleService
 
     public function getAuthUrl()
     {
-        // Buat state untuk keamanan
-        $state = bin2hex(random_bytes(16));
-        session(['google_oauth_state' => $state]);
-
         // Param untuk URL otentikasi Google dengan scope default
         $params = [
             'response_type' => 'code',
             'client_id' => $this->client_id,
             'redirect_uri' => $this->callback,
             'scope' => $this->scopes,
-            'state' => $state,
             'access_type' => 'offline',
             'prompt' => 'consent'
         ];
