@@ -19,4 +19,5 @@ Route::middleware('auth')->group(function () {
 
     Route::put('/calenders/{eventId}/resize', [CalenderController::class, 'resizeEvent'])->name('resize-calender');
     Route::get('/refetch-calender', [CalenderController::class, 'refetchEvents'])->name('refetch-calender');
+    Route::get('/sync-calender', [CalenderController::class, 'syncCalendar'])->name('sync-calender');
 });

@@ -6,7 +6,14 @@
     <div class="flex justify-center mx-72">
         <div class="w-full md:w-11/12">
             <div class="shadow-lg bg-base-100 rounded-lg">
-                <a href="{{ $OAuth2Client }}" class="btn btn-ghost"><img src="https://img.icons8.com/color/48/000000/google.png" class="h-8 w-8"></a>
+                <a href="{{ $OAuth2Client }}" class="btn btn-sm btn-ghost">Google</a>
+                <a href="{{ route('sync-calender') }}" class="btn btn-sm btn-ghost">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        </svg>
+                </a>
                 <div class="p-6">
                     <div id="calendar"></div>
                 </div>
@@ -131,7 +138,7 @@
 
                     $('#startDateTime').val(startDate);
                     $('#endDateTime').val(endDate);
-                    
+
                     scheduleModal.showModal();
                 },
                 eventClick: function(info) {
@@ -289,7 +296,7 @@
                         }
                     }
                 })
-                
+
             }
         }
 
