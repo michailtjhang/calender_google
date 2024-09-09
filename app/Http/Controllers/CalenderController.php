@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Models\CalenderGoogle;
 use App\Http\Service\EventService;
+use Illuminate\Support\Facades\DB;
+use App\Http\Service\GoogleService;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\CreateEventRequest;
 use App\Http\Requests\UpdateEventRequest;
-use App\Models\CalenderGoogle;
-use App\Http\Service\GoogleService;
-use Carbon\Carbon;
 
 class CalenderController extends Controller
 {
@@ -31,18 +32,38 @@ class CalenderController extends Controller
 
     public function syncCalendar(Request $request)
     {
-        // Mengambil access token dari database user
+        // Mengambil access token dan refresh token dari database user
         $user = Auth::user();
         $accessToken = $user->calendar_access_token;
+        $refreshToken = $user->calendar_refresh_token; // Pastikan refresh token juga tersimpan
 
-        // Mengambil event dari Google Calendar
         $googleService = new GoogleService(
             config('google.app_id'),
             config('google.app_secret'),
             config('google.app_callback')
         );
 
-        // Dapatkan event dari Google Calendar
+        // Cek apakah access token kedaluwarsa
+        if ($this->isTokenExpired($accessToken)) {
+            // Jika access token kedaluwarsa, gunakan refresh token untuk mendapatkan token baru
+            $newTokenData = $googleService->refreshAccessToken($refreshToken);
+
+            // Perbarui access token yang baru di database
+            $accessToken = $newTokenData->access_token;
+            DB::table('users')->where('id', $user->id)->update([
+                'calendar_access_token' => $accessToken,
+            ]);
+
+            // Jika refresh token baru diberikan, simpan juga refresh token yang baru
+            if (isset($newTokenData->refresh_token)) {
+                $refreshToken = $newTokenData->refresh_token;
+                DB::table('users')->where('id', $user->id)->update([
+                    'calendar_refresh_token' => $refreshToken,
+                ]);
+            }
+        }
+
+        // Setelah memperbarui token, gunakan access token yang baru untuk sinkronisasi
         $syncResult = $googleService->syncCalendarEvents($accessToken);
 
         $events = $syncResult['events'];
@@ -244,5 +265,16 @@ class CalenderController extends Controller
         }
 
         return response()->json(['status' => 'failed']);
+    }
+
+    protected function isTokenExpired($accessToken)
+    {
+        // Di sini, kita cek apakah access token sudah kedaluwarsa atau tidak.
+        // Misalnya, Anda bisa menyimpan waktu kedaluwarsa token di database atau session.
+        // Kembalikan `true` jika token sudah kedaluwarsa.
+
+        // Sebagai contoh sederhana, kita bisa mengasumsikan token selalu kedaluwarsa (di dalam lingkungan development)
+        // Ini sebaiknya diupdate sesuai dengan penyimpanan waktu kedaluwarsa token yang sebenarnya.
+        return false; // Implementasikan sesuai dengan kebutuhan Anda
     }
 }

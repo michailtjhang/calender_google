@@ -26,7 +26,6 @@ class OauthController extends Controller
             $formattedTime = $expirationTime->format('Y-m-d H:i:s');
 
             $refresh_token = $token->refresh_token;
-            $id_token = $token->id_token;
 
             $getUser = $googleService->getUserInfo($accessToken);
             $id_google = $getUser->sub;

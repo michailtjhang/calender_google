@@ -20,6 +20,7 @@ return new class extends Migration
             $table->text('calendar_access_token')->nullable();
             $table->text('calendar_refresh_token')->nullable();
             $table->string('calendar_user_account_info')->nullable();
+            $table->dateTime('expires_in')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

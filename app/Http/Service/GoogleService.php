@@ -62,6 +62,27 @@ class GoogleService
         return $responses;
     }
 
+    public function refreshAccessToken($refreshToken)
+    {
+        $url = "https://oauth2.googleapis.com/token";
+        $params = [
+            'client_id' => $this->client_id,
+            'client_secret' => $this->client_secret,
+            'refresh_token' => $refreshToken,
+            'grant_type' => 'refresh_token',
+        ];
+
+        try {
+            $response = $this->curl($url, $params, "application/x-www-form-urlencoded", "POST");
+            $responseBody = $response->getBody()->getContents();
+            $newTokenData = json_decode($responseBody, true);
+
+            return $newTokenData;
+        } catch (\Exception $e) {
+            throw new \Exception("Error refreshing access token: " . $e->getMessage());
+        }
+    }
+
     public function getUserInfo($accessToken)
     {
         $url = "https://www.googleapis.com/oauth2/" . self::VERSION_API . "/userinfo";
