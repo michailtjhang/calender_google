@@ -49,14 +49,16 @@ class CalenderController extends Controller
             $newTokenData = $googleService->refreshAccessToken($refreshToken);
 
             // Perbarui access token yang baru di database
-            $accessToken = $newTokenData->access_token;
+            $accessToken = $newTokenData['access_token'];
+            $expirationTime = Carbon::now()->addSeconds($newTokenData['expires_in']);
             DB::table('users')->where('id', $user->id)->update([
                 'calendar_access_token' => $accessToken,
+                'expires_in' => $expirationTime->format('Y-m-d H:i:s'),
             ]);
 
             // Jika refresh token baru diberikan, simpan juga refresh token yang baru
-            if (isset($newTokenData->refresh_token)) {
-                $refreshToken = $newTokenData->refresh_token;
+            if (isset($newTokenData['refresh_token'])) {
+                $refreshToken = $newTokenData['refresh_token'];
                 DB::table('users')->where('id', $user->id)->update([
                     'calendar_refresh_token' => $refreshToken,
                 ]);
@@ -72,12 +74,12 @@ class CalenderController extends Controller
         // Simpan event baru atau update ke database
         foreach ($events as $event) {
             $existingEvent = CalenderGoogle::where('event_id', $event['id'])->first();
+
             if (!$existingEvent) {
                 // Simpan event baru
                 CalenderGoogle::create([
                     'event_id' => $event['id'],
                     'user_id' => $user->id,
-                    'google_event_id' => $event['id'],
                     'title' => $event['summary'] ?? '',
                     'description' => $event['description'] ?? '',
                     'start' => Carbon::parse($event['start']['dateTime'])->toDateTimeString(),
@@ -126,11 +128,11 @@ class CalenderController extends Controller
                 'description' => $event->description,
                 'start' => [
                     'dateTime' => Carbon::parse($event->start)->toRfc3339String(),
-                    'timeZone' => 'UTC',  // Sesuaikan zona waktu jika perlu
+                    'timeZone' => 'Indonesia/Jakarta',  // Sesuaikan zona waktu jika perlu
                 ],
                 'end' => [
                     'dateTime' => Carbon::parse($event->end)->toRfc3339String(),
-                    'timeZone' => 'UTC',
+                    'timeZone' => 'Indonesia/Jakarta',  // Sesuaikan zona waktu jika perlu
                 ],
                 'reminders' => [
                     'useDefault' => true,
@@ -270,11 +272,10 @@ class CalenderController extends Controller
     protected function isTokenExpired($accessToken)
     {
         // Di sini, kita cek apakah access token sudah kedaluwarsa atau tidak.
-        // Misalnya, Anda bisa menyimpan waktu kedaluwarsa token di database atau session.
-        // Kembalikan `true` jika token sudah kedaluwarsa.
-
-        // Sebagai contoh sederhana, kita bisa mengasumsikan token selalu kedaluwarsa (di dalam lingkungan development)
-        // Ini sebaiknya diupdate sesuai dengan penyimpanan waktu kedaluwarsa token yang sebenarnya.
-        return false; // Implementasikan sesuai dengan kebutuhan Anda
+        if ($accessToken > now()->timestamp) {
+            return true;
+        } else {
+            return false; // Implementasikan sesuai dengan kebutuhan Anda
+        }
     }
 }

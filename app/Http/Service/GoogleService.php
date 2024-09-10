@@ -173,10 +173,12 @@ class GoogleService
         $url = "https://www.googleapis.com/calendar/" . self::VERSION_API . "/calendars/{$calendarId}/events";
 
         $params = [
-            'access_token' => $accessToken,
-            'headers' => ['Content-Type' => 'application/json'],
-            'json' => $eventData, // Data event dalam format JSON
-        ];
+            'headers' => [
+                'Authorization' => 'Bearer ' . $accessToken,  // Tambahkan access token dalam Authorization header
+                'Content-Type' => 'application/json',
+            ],
+            'json' => $eventData,
+        ];  
 
         try {
             $response = $this->curl($url, $params, "application/json", 'POST');
