@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\CalenderGoogle;
@@ -25,17 +26,26 @@ class CalenderController extends Controller
             config('google.app_callback'),
         );
 
+        $user = Auth::user();
+        $hasCalendarAccess = !empty($user->calendar_access_token);
+
         return view('calenders.list', [
             'OAuth2Client' => $googleService->getAuthUrl(),
+            'hasCalendarAccess' => $hasCalendarAccess,
+            'user' => $user,
         ]);
     }
 
     public function syncCalendar(Request $request)
     {
-        // Mengambil access token dan refresh token dari database user
         $user = Auth::user();
         $accessToken = $user->calendar_access_token;
-        $refreshToken = $user->calendar_refresh_token; // Pastikan refresh token juga tersimpan
+        $refreshToken = $user->calendar_refresh_token;
+
+        // Cek apakah data otentikasi ada
+        if (!$accessToken || !$refreshToken) {
+            return back()->with('error', 'Akun Google belum terhubung atau data token hilang.');
+        }
 
         $googleService = new GoogleService(
             config('google.app_id'),
@@ -43,53 +53,118 @@ class CalenderController extends Controller
             config('google.app_callback')
         );
 
-        // Cek apakah access token kedaluwarsa
-        if ($this->isTokenExpired($accessToken)) {
-            // Jika access token kedaluwarsa, gunakan refresh token untuk mendapatkan token baru
-            $newTokenData = $googleService->refreshAccessToken($refreshToken);
+        // Cek token expired dan lakukan refresh jika perlu
+        if ($this->isTokenExpired($user->expires_in)) {
+            try {
+                $newTokenData = $googleService->refreshAccessToken($refreshToken);
 
-            // Perbarui access token yang baru di database
-            $accessToken = $newTokenData['access_token'];
-            $expirationTime = Carbon::now()->addSeconds($newTokenData['expires_in']);
-            DB::table('users')->where('id', $user->id)->update([
-                'calendar_access_token' => $accessToken,
-                'expires_in' => $expirationTime->format('Y-m-d H:i:s'),
-            ]);
+                $accessToken = $newTokenData['access_token'];
+                $expirationTime = Carbon::now()->addSeconds($newTokenData['expires_in']);
 
-            // Jika refresh token baru diberikan, simpan juga refresh token yang baru
-            if (isset($newTokenData['refresh_token'])) {
-                $refreshToken = $newTokenData['refresh_token'];
-                DB::table('users')->where('id', $user->id)->update([
-                    'calendar_refresh_token' => $refreshToken,
-                ]);
+                // === FIX: Menggunakan toDateTimeString() sebagai METHOD ===
+                $updateData = [
+                    'calendar_access_token' => $accessToken,
+                    'expires_in' => $expirationTime->toDateTimeString(), // BENAR
+                ];
+
+                if (isset($newTokenData['refresh_token'])) {
+                    $updateData['calendar_refresh_token'] = $newTokenData['refresh_token'];
+                }
+
+                DB::table('users')->where('id', $user->id)->update($updateData);
+            } catch (Exception $e) {
+                // Penanganan error refresh token (misalnya, refresh token juga expired)
+                return back()->with('error', 'Gagal memperbarui token Google. Silakan otentikasi ulang akun Anda. Error: ' . $e->getMessage());
             }
         }
 
-        // Setelah memperbarui token, gunakan access token yang baru untuk sinkronisasi
-        $syncResult = $googleService->syncCalendarEvents($accessToken);
+        // --- 1. SETTING BATAS WAKTU SINKRONISASI ---
+        // Kita hanya akan menyinkronkan event sampai 2 tahun ke depan untuk mengurangi event berulang (recurring events).
+        $timeMax = Carbon::now()->addYears(2)->toRfc3339String();
+        $params = ['timeMax' => $timeMax];
+        // ------------------------------------------
 
-        $events = $syncResult['events'];
-        $nextSyncToken = $syncResult['nextSyncToken'];
+        $lastSyncToken = $user->calendar_sync_token ?? null;
+        $message = 'Calendar synchronized!';
 
-        // Simpan event baru atau update ke database
+        try {
+            // 2. KIRIMKAN PARAMETER (termasuk timeMax) ke GoogleService
+            $syncResult = $googleService->syncCalendarEvents($accessToken, $lastSyncToken, $params);
+        } catch (Exception $e) {
+            if (str_contains($e->getMessage(), '410 Gone')) {
+                // Sync token tidak valid, lakukan FULL SYNC
+                $syncResult = $googleService->syncCalendarEvents($accessToken, null);
+                $message = 'Sinkronisasi penuh berhasil karena token sebelumnya kadaluarsa.';
+            } else {
+                return back()->with('error', 'Gagal sinkronisasi kalender: ' . $e->getMessage());
+            }
+        }
+
+        $events = $syncResult['events'] ?? [];
+        $nextSyncToken = $syncResult['nextSyncToken'] ?? null;
+
+        // Catatan: Jika Anda ingin melihat data yang sudah difilter di dd(), 
+        // Anda harus mengubah array $events di sini, tetapi kode di bawah ini 
+        // akan langsung melewati event ulang tahun di dalam loop.
+
+        // Simpan atau update event
         foreach ($events as $event) {
-            $existingEvent = CalenderGoogle::where('event_id', $event['id'])->first();
 
-            if (!$existingEvent) {
-                // Simpan event baru
-                CalenderGoogle::create([
-                    'event_id' => $event['id'],
+            // =========================================================
+            // === FILTERING EVENT: SKIP EVENT DENGAN eventType = 'birthday' ===
+            // === Menggunakan 'continue' agar event ini tidak diproses/disimpan ===
+            // =========================================================
+            if (isset($event['eventType']) && $event['eventType'] === 'birthday') {
+                // Kita abaikan event ulang tahun, dan langsung lanjut ke event berikutnya
+                continue;
+            }
+            // =========================================================
+            
+            // Cek Event Status (e.g., 'cancelled')
+            if (isset($event['status']) && $event['status'] === 'cancelled') {
+                CalenderGoogle::where('event_id', $event['id'])->delete();
+                continue;
+            }
+
+            // Tentukan apakah ini All Day Event
+            $isAllDay = isset($event['start']['date']);
+
+            // Ambil waktu mulai dan berakhir
+            // Untuk All Day Events, kita ambil 'date', jika tidak ada, ambil 'dateTime'
+            $startDateTime = $event['start']['dateTime'] ?? $event['start']['date'];
+            $endDateTime = $event['end']['dateTime'] ?? $event['end']['date'];
+
+            // HANYA jika bukan All Day Event, kita parse ke string DATETIME
+            $start = $isAllDay ? $startDateTime : Carbon::parse($startDateTime)->toDateTimeString();
+            $end = $isAllDay ? $endDateTime : Carbon::parse($endDateTime)->toDateTimeString();
+
+            // Lakukan update atau create menggunakan ID event yang unik (termasuk instance ID)
+            CalenderGoogle::updateOrCreate(
+                ['event_id' => $event['id']],
+                [
                     'user_id' => $user->id,
                     'title' => $event['summary'] ?? '',
                     'description' => $event['description'] ?? '',
-                    'start' => Carbon::parse($event['start']['dateTime'])->toDateTimeString(),
-                    'end' => Carbon::parse($event['end']['dateTime'])->toDateTimeString(),
-                    'is_all_day' => isset($event['start']['date']),
-                ]);
-            }
+
+                    // TAMBAHAN: Simpan ID Event Berulang (jika ada)
+                    'recurring_event_id' => $event['recurringEventId'] ?? null,
+
+                    'start' => $start,
+                    'end' => $end,
+
+                    'is_all_day' => $isAllDay,
+                ]
+            );
         }
 
-        return back();
+        // Update sync token di DB
+        if ($nextSyncToken) {
+            DB::table('users')->where('id', $user->id)->update([
+                'calendar_sync_token' => $nextSyncToken,
+            ]);
+        }
+
+        return back()->with('success', $message);
     }
 
     public function refetchEvents(Request $request)
@@ -113,7 +188,7 @@ class CalenderController extends Controller
      */
     public function store(CreateEventRequest $request)
     {
-        $data = $request->all();
+        $data = $request->validated();
         $user = Auth::user();
         $data['user_id'] = $user->id;
 
@@ -177,7 +252,7 @@ class CalenderController extends Controller
      */
     public function update(UpdateEventRequest $request, string $id)
     {
-        $data = $request->all();
+        $data = $request->validated();
         $user = Auth::user();
 
         // Update event di database
@@ -269,13 +344,14 @@ class CalenderController extends Controller
         return response()->json(['status' => 'failed']);
     }
 
-    protected function isTokenExpired($accessToken)
+    private function isTokenExpired($expiresIn): bool
     {
-        // Di sini, kita cek apakah access token sudah kedaluwarsa atau tidak.
-        if ($accessToken > now()->timestamp) {
+        // Menggunakan try-catch jika format expires_in tidak valid
+        try {
+            return Carbon::parse($expiresIn)->subMinutes(5)->isPast();
+        } catch (Exception $e) {
+            // Jika parsing gagal, anggap token expired atau format tidak valid
             return true;
-        } else {
-            return false; // Implementasikan sesuai dengan kebutuhan Anda
         }
     }
 }

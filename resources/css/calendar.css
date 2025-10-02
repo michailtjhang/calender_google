@@ -1,0 +1,130 @@
+:root {
+    --p: 259 94% 51%;
+    /* Primary */
+    --pf: 259 94% 41%;
+    /* Primary focus (lebih gelap) */
+    --pc: 0 0% 100%;
+    /* Primary content (teks di atas primary, biasanya putih) */
+
+    --b1: 0 0% 100%;
+    /* Background utama (putih) */
+    --b2: 240 4% 95%;
+    /* Background sekunder (abu-abu terang) */
+    --b3: 240 4% 90%;
+    /* Background level 3 (abu-abu lebih gelap) */
+    --bc: 240 5% 26%;
+    /* Background content → teks (abu-abu tua/hampir hitam) */
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* FullCalendar container */
+.fc {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+}
+
+/* === Toolbar Buttons === */
+.fc .fc-button {
+    background-color: hsl(var(--b1)) !important;
+    /* default bg */
+    border: 1px solid hsl(var(--b2)) !important;
+    color: hsl(var(--bc)) !important;
+    /* teks kontras */
+    font-weight: 500;
+    text-transform: capitalize;
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.75rem;
+}
+
+/* Hover */
+.fc .fc-button:hover {
+    background-color: hsl(var(--b2)) !important;
+    color: hsl(var(--bc)) !important;
+}
+
+/* Active (contoh: Day/Week/Month terpilih) */
+.fc .fc-button-active {
+    background-color: hsl(var(--p)) !important;
+    border-color: hsl(var(--p)) !important;
+    color: hsl(var(--pc)) !important;
+}
+
+/* Disabled (contoh: Today kalau sudah posisi hari ini) */
+.fc .fc-button:disabled {
+    background-color: hsl(var(--b3)) !important;
+    color: hsl(var(--bc)) !important;
+    opacity: 0.6;
+}
+
+/* Judul di toolbar (contoh: Sep 28 – Oct 4, 2025) */
+.fc-toolbar-title {
+    color: hsl(var(--bc)) !important;
+    font-weight: 600;
+}
+
+/* === Grid & Table === */
+.fc-theme-standard td,
+.fc-theme-standard th {
+    border-color: hsl(var(--b2));
+}
+
+.fc-theme-standard .fc-scrollgrid {
+    border-color: hsl(var(--b2));
+}
+
+/* Hari ini highlight */
+.fc .fc-daygrid-day.fc-day-today,
+.fc .fc-timegrid-col.fc-day-today {
+    background-color: hsl(var(--p) / 0.1);
+}
+
+/* Header kolom hari (SUN, MON, ...) */
+.fc .fc-col-header-cell {
+    background-color: hsl(var(--b2));
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: hsl(var(--bc));
+}
+
+/* Tanggal kecil pojok kanan atas */
+.fc .fc-daygrid-day-number {
+    color: hsl(var(--bc));
+    font-weight: 500;
+}
+
+/* Event */
+.fc-event {
+    border-radius: 0.375rem;
+    padding: 2px 4px;
+    margin-bottom: 2px;
+}
+
+/* === DateTimePicker styling === */
+.xdsoft_datetimepicker {
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    border: 1px solid hsl(var(--b2));
+    border-radius: 0.5rem;
+}
+
+/* === Animation === */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+}
